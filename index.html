@@ -1,9 +1,523 @@
-<!DOCKTYPE html>
-<html>
-	<head>
-		<script type="text/javascript" src="d3.min.js"></script>
-	</head>
-  <body>
-	  <p> A DDOS Attacks Visualization </p>
-  </body>
+<!DOCTYPE html>
+<head>
+	<meta charset="utf-8">
+
+	<title>DDOS Attack Animation</title>
+	<header> 
+		<aside>March 5th, 2015 / Areej Alghamdi</aside>
+	</header>
+
+<h1>DDOS Attack Animation</h1>
+
+<style>
+
+
+.node {
+  stroke: #fff;
+  stroke-width: 4px;
+  stroke-opacity:0.5;
+  opacity: 0.5;
+ 
+}
+
+.link {
+  stroke: #999;
+  stroke-opacity: .6;
+}
+
+text {
+	 font: 15px, sans-serif;
+	 color: #fff;
+}
+#end {
+	 color: #000;
+	 font: 100px, sans-serif;
+	 font-weight: 300;
+	 letter-spacing: -2px;
+
+}
+
+body{
+	background-color: #F0F0F0;
+	font-family: "Helvetica Neue", Helvetica, sans-serif;
+  	margin: 1em auto 4em auto;
+  	width: 960px;
+
+}
+
+header aside{
+	  margin-top: 82px;
+	  color: #F7819F;
+	  font-size: 20px;
+	  font-family: 'Palatino Linotype', serif;
+}
+h1{
+   font-size: 45px;
+  font-weight: 300;
+  letter-spacing: -2px;
+  margin: .3em 0 .1em 0;
+}
+
+h2{
+	 font-size: 45px;
+  font-weight: 300;
+  letter-spacing: -2px;
+  margin: .5em 0 .6em 0;
+}
+}
+p{
+	background-color: #F0F0F0;
+	margin: 0 auto;
+	font: 15px, sans-serif;
+	color: #999;
+
+}
+
+.infobox {  
+ 		position: absolute;
+        
+        padding: 10px;
+        background-color: rgba(255,255,255,.75);
+}
+
+</style>
+</head>
+	
+<body>
+	<button type="button" id="play" disabled>Play</button>
+	<button type="button" id="pause" disabled>Pause</button>
+	<button type="button" id="replay" disabled>Replay</button>
+	
+	
+	<p></p>
+
+	<div id="body">
+		<div id="progress"></div>
+		<div class="infobox"> 
+			<p id = "box"></p>
+		</div>
+	</div>
+</body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script>
+
+window.onload=function() {
+      setTimeout(function(){
+        document.getElementById('play').disabled = null;
+      },3000);
+}
+var numOFNodes;	
+var text; 
+var width = 900,
+    height = 900;
+var border = 0.5;
+var bordercolor= 'F0F0F0';
+
+var color = d3.scale.category20();
+
+
+var force = d3.layout.force()
+    .linkDistance(300)
+    .size([width, height]);
+
+
+var vis = d3.select("p").append("svg")
+    .attr("width", width)
+    .attr("height", height)
+    .attr("border", border)
+    .on('mousemove', moveBoxAround);
+
+
+
+function moveBoxAround(){
+	var infobox = d3.select(".infobox");
+	infobox.style("left", (d3.event.pageX) + 15 + "px" );
+	infobox.style("top", (d3.event.pageY)  + "px");
+}
+
+
+var borderPath = vis.append("rect")
+       			.attr("x", 0)
+       			.attr("y", 0)
+       			.attr("height", height)
+       			.attr("width", width)
+       			.style("fill", "none")
+       			.style("stroke", bordercolor)
+       			.style("anchor", "middle")
+       			.style("stroke-width", border);
+
+///!!!!!!!!!!!!!!! Initiate progress Bar !!!!!!!!!!!!!//
+
+var progressColor = ["#D1D1D1","red"],
+		progressClass = ["prgsBehind","prgsFront"],
+		prgsWidth = 0.4*650,
+		prgsHeight = 3;
+
+	var progressBar = d3.select("#progress").append("svg")
+		.attr("width", prgsWidth)
+		.attr("height", 5*prgsHeight);	
+
+function createProgressBar(){	
+	
+	progressBar.selectAll("rect")
+		.data([prgsWidth, 0])
+		.enter()
+		.append("rect")
+		.attr("class", function(d,i) {return progressClass[i];})
+		.attr("x", 0)
+		.attr("y", 0)
+		.attr("width", function (d) {return d;})
+		.attr("height", prgsHeight)
+		.attr("fill", function(d,i) {return progressColor[i];});
+}
+
+d3.json("3000nodes.json", function(error, graph) {
+  
+    //LOAD THE JSON FILE AND CREATE THE ANIMATION ELEMENTS
+    vis.call(createVis);
+    //CREATE THE PROGRESS BAR
+    progressBar.call(createProgressBar);
+
+    
+ //!!!!!!!!!!!!!! Listen for button clicked events !!!!!!!!!!!!!!!!!//
+	d3.selectAll("button").on("click", function(){
+		var buttonid = d3.select(this).attr("id");
+		if(buttonid == "play"){
+			//START THE ATTACK ANIMATION
+			vis.call(startAttack); 
+			document.getElementById("pause").disabled = false;
+			document.getElementById("replay").disabled = false;
+			//RESET THE PROGRESS BAR
+			d3.selectAll(".prgsFront")
+			.attr("width", 0);
+		}
+
+		if(buttonid == "pause"){
+			//PAUSE THE ANIMATION
+			vis.call(pauseAttack);
+		}
+		if(buttonid == "replay"){
+			//RESET THE PROGRESS BAR
+			d3.selectAll(".prgsFront")
+			.attr("width", 0);
+			document.getElementById("play").disabled = true;
+			document.getElementById("pause").disabled = true;
+			setTimeout(function(){
+        		document.getElementById("play").disabled = null;
+      		},3000);
+			//REMOVE EVERYTHING AND RELOAD THE VISUALIZATIN ELEMENTS AND RUN THE PROGRESS BAR
+      		vis.selectAll("*").remove();
+			vis.call(replayAttack);
+			progressBar.call(runProgressBar);
+
+		}
+     });
+	//THE INITIAL RUN OF THE PROGRESS BAR WHEN FIRST LOADED
+	progressBar.call(runProgressBar);
+	
+    
+//!!!!!!!!!!!!!! INITIATE THE VISUALIZATION ELEMENTS  !!!!!!!!!!!!!!!!!//
+function createVis(){
+	//SET THE FORCE LAYOUT ATTRIBUTES
+	force
+      .nodes(graph.nodes)
+      .links(graph.links)
+      .start();
+      //SET THE DRAG FUNCTION FOR THE FORCE LAYOUT DRAGGING EVENTS
+    var drag = force.drag()
+    	.on("dragstart",dragstart);
+
+	//DECLARE LINKS BUT DONT ENTER THEM IN THE VISUALIZATION
+    var link = vis.selectAll(".link")
+      .data(graph.links);
+
+	//DECLARE THE NODES AND ENTER THEM AND SET THE ATTRIBUTES  
+    var node = vis.selectAll(".node")
+      .data(graph.nodes);
+    
+    var nodeEnter = node.enter().append("circle")
+      .attr("class", "node")
+      .attr("r", function(d){
+      	 if(d.id == 0) {return 80;}
+      	 else {return 6; }
+      })
+      .style("fill", function(d) { 
+      	if(d.id == 0){return 'red';}
+      	else {return color(d.id);}
+      	})
+      .style("opacity", function(d){
+      	if(d.id == 0) { return 0.5;}
+      	else {return 0.9;}
+      })
+      .on("mouseover", mouseON)
+      .on("mouseout", mouseOFF)
+      .on("dblclick",dblclick)
+      .call(drag);
+ 
+    //SAVE THE TOTAL NUMBER OF NODES
+ 	numOFNodes = node.size();
+	
+
+	//DECLATE THE TEXT AND ENTER ONLY THE CENTRAL NODE'S TEXT
+ 	text = vis.selectAll("text")
+    	.data(graph.nodes)
+    	.enter()
+    	.append("text")
+    	.filter(function(d){ return d.id == 0;})
+    	.style("opacity", 1) // except the main target
+    	.attr("fill", function(d) { 
+    		if(d.id != 0) {return color(d.id);}
+    		else{return '#fff'}
+    	})
+    	.attr("font-size", function(d) { if(d.id != 0) {return "10px";}})
+    	.attr("x", 8)
+    	.attr("y", ".31em")
+    	.text(function(d) { return d.name; })
+    	.style("text-anchor", function(d) {
+    		if(d.id ==0) {return "middle";}
+    		else {return "start";}
+    	});
+//POSITION ALL ELEMENTS ON TICK 
+	force.tick(); 
+
+	force.on("tick", function() {
+
+	    link
+	    	.attr("x1", function(d) { return d.source.x; })
+	        .attr("y1", function(d) { return d.source.y; })
+	        .attr("x2", function(d) { return d.target.x; })
+	        .attr("y2", function(d) { return d.target.y; });
+
+	    node
+	    .attr("cx", function(d) { 
+	    	if(d.id == 0) {return d.x = width/2;}
+	    	else {return d.x; }
+	    	})
+	        .attr("cy", function(d) { 
+	        if(d.id ==0) {return d.y = height/2; }
+	        else {return d.y; }
+	        });
+
+
+	    text
+	    .attr("transform", transform);
+
+	});
+
+ 	
+}
+
+  
+//!!!!!!!!! TRASFROM THE LOCATION OF THE TEXT - POSITIONING !!!!!!!!!!!!!!!!//
+ function transform(d){
+ 	return "translate(" + d.x + "," + d.y + ")";
+ }
+
+
+//!!!!!!!!!!!!!!!***********START THE ATTACK - MOVING OF THE NODES **************************!!!!!!!!!!!!!!!!!!!!!!
+ function startAttack(){
+	
+ 	//make the node disapear as soon as hitting the area of the circle 
+ 	//fade out the node that reached the center and remove them
+ 	force.stop(); // force the stop of stabalization to start the animation
+ 	this.selectAll(".node")
+ 		.transition()
+ 		.duration(2000)
+ 		.attr("cx" , function(d){ return d.x = width/2;})
+ 		.attr("cy", function(d) { return d.y = height/2;})
+ 		.delay(function(d,i){ return (i *5);})
+ 		.each("end", function(d){
+ 			//alert("this is node # " + d.id);
+ 			if(d.id != 0 ){
+ 				d3.select(this)
+ 				.transition()
+ 				.style("opacity", 0.2)
+ 				.remove();
+ 			}
+ 			else{
+ 				d3.select(this).each(radiateCircle);
+ 			}
+ 		});
+ 	// fade out the text of the nodes reaching the center and remove them
+ 	this.selectAll("text")
+ 		.transition()
+ 		.duration(2000)
+ 		.style("opacity", 0.2)
+ 		.attr("transform", transform)
+ 		.each("end", function(d){
+ 			if(d.id != 0 ){
+ 			d3.select(this)
+ 			.remove();
+ 			}
+ 		});	
+
+ 	this.selectAll(".links")
+ 	.transition()
+ 	.each("end", function(d){
+ 			d3.select(this)
+ 			.remove();
+ 	});	
+
+ 	//alert("num of nodes after attak done  = " + node.size());
+
+ }
+
+function pauseAttack(){
+	this.selectAll(".node")
+		.transition()
+		.duration(0);
+
+	this.selectAll("text")
+		.transition()
+		.duration(0);
+}
+function replayAttack(){
+	
+	vis.call(createVis);
+}
+
+//MOUSE ON EVENT FUNCTION
+function mouseON(data){
+	var dot = d3.select(this);
+		dot
+	    .style("opacity", function(d){
+	    	if(d.id == 0){return 0.5;}
+	    	else {return 1;}
+	    })
+		.attr("r", function(d){ 
+			if(d.id != 0) {return 20;}
+			else {return 80;}
+		})
+		.attr("stroke-width", function(d){
+			if(d.id != 0) {return 7;}
+			else {return 4;}
+		});
+
+		d3.select(".infobox").style("display", "block");
+		if(data.id != 0){
+			d3.select("#box").html( "USER ID or IP: " + data.name + "<br>" +  "Time: " + data.time +  "<br/>" + "Request:" + data.request);
+		}else{
+			d3.select("#box").html("");
+		}
+		// if the id of the dot is 0 the text is just the target and the url
+}
+
+//!!!! MOUSE OFF EVENT FUNCTION 
+function mouseOFF(){
+ var dot = d3.select(this);
+	dot
+	.style("fill", function(d){ 
+		if(d.id == 0) {return 'red';}
+		else{return color(d.id);}
+	})
+	.style("opacity", function(d){
+	    	if(d.id == 0){return 0.5;}
+	    	else {return 0.9;}
+	    })
+	.attr("r",  function(d){ 
+		if(d.id != 0) {return 6;}
+		else {return 80;}
+	})
+	.attr("stroke-width",  4);
+	
+	d3.select(".infobox").style("display", "none");
+	
+
+}
+//!!! MAKE THE CIRCLE RADIATE TO SHOW THAT IT IS IN DANGER
+function radiateCircle(){
+	
+		
+		var big = d3.selectAll(".node").filter(function(d){ return d.id == 0;});
+		
+		var count = 0;
+
+	(function repeat(){
+	 if(count != 4) {
+			big
+			.transition()
+			.duration(800)
+			.attr("r" , 500)
+			.style("opacity", 0)
+			.each("end", function() {
+						big
+						.transition()
+						.duration(0)
+						.attr("r", 70)
+						.style("opacity", 0.5)
+						.each("end", function(){
+							big
+							.transition()
+							.duration(800)
+							.attr("r" , 500)
+							.style("opacity", 0)
+							.each("end", function(){
+										big
+										.transition()
+										.duration(0)
+										.attr("r", 70)
+										.style("opacity", 0.5)
+										.each("end",repeat);
+										
+							});
+						});
+					});
+					
+			count+=1;
+		}else{
+			big.remove();
+			var textcenter = d3.selectAll("text").filter(function(d){ return d.id == 0;});
+			textcenter.remove();
+		}
+	})();
+
+	
+}
+
+//!!!!ALLOW DRAG EVENTS ON NODES AND FIX THEM ON PLACE
+function dragstart(d){
+	d3.select(this).classed("fixed", d.fixed = true);
+
+}
+//!!!!UNFIX THE LOCATION OF THE FIXED ONES
+function resetAllNodes(d){
+	d3.select(this).classed("fixed", d.fixed = false);
+}
+//!!!! DOUBLE CLICK TO UNFIX A FIXED NODE
+function dblclick(d) {
+   d3.select(this).classed("fixed", d.fixed = false);
+}
+
+// !!!!!!!!!!!!!!!! PGROGRESS BAR !!!!!!!!!!!!!!//
+/*Run the progress bar during an animation*/
+function runProgressBar() {	
+	//time=700*11;
+	time = 3000;
+	//MAKE THE PROGRESS BAR VISIBLE
+	d3.selectAll("#progress")
+		.style("visibility", "visible");
+	
+	//THE FILLING UP EFFECT OF THE PROGRESS BAR
+	d3.selectAll(".prgsFront")
+		.transition().duration(time).ease("linear")
+		.attr("width", prgsWidth)
+		.call(endall,  function() {
+			d3.selectAll("#progress")
+				.style("visibility", "hidden");
+		});
+		
+}
+
+
+// !!!!!!!!!!!!! ************** TO DO ************* !!!!!!!!!!!!!!!!!!!!
+/*
+	1. ALLOW UPLOADING OF ANY WEBLOG FILE - PARSE IT
+	2. SHOW GEOGRAPHICAL LOCATIONS - REMOVE/IGNORE NON IP ADDRESSES LOGS
+*/
+
+
+});
+
+</script>
+
 </html>
