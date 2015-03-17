@@ -4,7 +4,7 @@
 
 	<title>DDOS Attack Animation</title>
 	<header> 
-		<aside>March 5th, 2015 / Areej Alghamdi</aside>
+		<aside>March 15th, 2015 / Areej Alghamdi</aside>
 	</header>
 
 <h1>DDOS Attack Animation</h1>
@@ -80,6 +80,13 @@ p{
         background-color: rgba(255,255,255,.75);
 }
 
+/* text box for entering the name of the target */
+#textBox1 {
+	border:2px solid #456879;
+	border-radius:10px;
+	height: 22px;
+	width: 230px;
+}
 </style>
 </head>
 	
@@ -87,7 +94,6 @@ p{
 	<button type="button" id="play" disabled>Play</button>
 	<button type="button" id="pause" disabled>Pause</button>
 	<button type="button" id="replay" disabled>Replay</button>
-	
 	
 	<p></p>
 
@@ -104,7 +110,7 @@ p{
 window.onload=function() {
       setTimeout(function(){
         document.getElementById('play').disabled = null;
-      },3000);
+      },9000);
 }
 var numOFNodes;	
 var text; 
@@ -125,9 +131,8 @@ var vis = d3.select("p").append("svg")
     .attr("width", width)
     .attr("height", height)
     .attr("border", border)
+    .attr("style", "outline: thin solid white;")
     .on('mousemove', moveBoxAround);
-
-
 
 function moveBoxAround(){
 	var infobox = d3.select(".infobox");
@@ -171,7 +176,9 @@ function createProgressBar(){
 		.attr("fill", function(d,i) {return progressColor[i];});
 }
 
-d3.json("3000nodes.json", function(error, graph) {
+
+
+d3.json("iploc3300.json", function(error, graph) {
   
     //LOAD THE JSON FILE AND CREATE THE ANIMATION ELEMENTS
     vis.call(createVis);
@@ -204,7 +211,7 @@ d3.json("3000nodes.json", function(error, graph) {
 			document.getElementById("pause").disabled = true;
 			setTimeout(function(){
         		document.getElementById("play").disabled = null;
-      		},3000);
+      		},9000);
 			//REMOVE EVERYTHING AND RELOAD THE VISUALIZATIN ELEMENTS AND RUN THE PROGRESS BAR
       		vis.selectAll("*").remove();
 			vis.call(replayAttack);
@@ -243,7 +250,7 @@ function createVis(){
       })
       .style("fill", function(d) { 
       	if(d.id == 0){return 'red';}
-      	else {return color(d.id);}
+      	else {return color(d.country);}
       	})
       .style("opacity", function(d){
       	if(d.id == 0) { return 0.5;}
@@ -266,7 +273,7 @@ function createVis(){
     	.filter(function(d){ return d.id == 0;})
     	.style("opacity", 1) // except the main target
     	.attr("fill", function(d) { 
-    		if(d.id != 0) {return color(d.id);}
+    		if(d.id != 0) {return color(d.country);}
     		else{return '#fff'}
     	})
     	.attr("font-size", function(d) { if(d.id != 0) {return "10px";}})
@@ -298,15 +305,13 @@ function createVis(){
 	        else {return d.y; }
 	        });
 
-
 	    text
 	    .attr("transform", transform);
-
+	
 	});
 
  	
 }
-
   
 //!!!!!!!!! TRASFROM THE LOCATION OF THE TEXT - POSITIONING !!!!!!!!!!!!!!!!//
  function transform(d){
@@ -358,8 +363,6 @@ function createVis(){
  			.remove();
  	});	
 
- 	//alert("num of nodes after attak done  = " + node.size());
-
  }
 
 function pauseAttack(){
@@ -395,7 +398,7 @@ function mouseON(data){
 
 		d3.select(".infobox").style("display", "block");
 		if(data.id != 0){
-			d3.select("#box").html( "USER ID or IP: " + data.name + "<br>" +  "Time: " + data.time +  "<br/>" + "Request:" + data.request);
+			d3.select("#box").html( "IP: " + data.name + "<br>" +  "Time: " + data.time +  "<br/>" + "Request:" + data.request +  "<br/>" + "Country:" + data.country + "<br/>" + "Time Zone:" + data.timezone);
 		}else{
 			d3.select("#box").html("");
 		}
@@ -408,7 +411,7 @@ function mouseOFF(){
 	dot
 	.style("fill", function(d){ 
 		if(d.id == 0) {return 'red';}
-		else{return color(d.id);}
+		else{return color(d.country);}
 	})
 	.style("opacity", function(d){
 	    	if(d.id == 0){return 0.5;}
@@ -428,12 +431,12 @@ function mouseOFF(){
 function radiateCircle(){
 	
 		
-		var big = d3.selectAll(".node").filter(function(d){ return d.id == 0;});
+	var big = d3.selectAll(".node").filter(function(d){ return d.id == 0;});
 		
-		var count = 0;
+	var count = 0;
 
 	(function repeat(){
-	 if(count != 4) {
+	 if(count != 9) {
 			big
 			.transition()
 			.duration(800)
@@ -467,7 +470,12 @@ function radiateCircle(){
 		}else{
 			big.remove();
 			var textcenter = d3.selectAll("text").filter(function(d){ return d.id == 0;});
-			textcenter.remove();
+			//textcenter.remove();
+			textcenter
+			.attr("font-size", "60px")
+			.style("opacity", 1)
+			.style("fill", '#F7819F')
+			.text("SERVER IS DOWN!!!");
 		}
 	})();
 
@@ -492,7 +500,7 @@ function dblclick(d) {
 /*Run the progress bar during an animation*/
 function runProgressBar() {	
 	//time=700*11;
-	time = 3000;
+	time = 9000;
 	//MAKE THE PROGRESS BAR VISIBLE
 	d3.selectAll("#progress")
 		.style("visibility", "visible");
@@ -507,14 +515,6 @@ function runProgressBar() {
 		});
 		
 }
-
-
-// !!!!!!!!!!!!! ************** TO DO ************* !!!!!!!!!!!!!!!!!!!!
-/*
-	1. ALLOW UPLOADING OF ANY WEBLOG FILE - PARSE IT
-	2. SHOW GEOGRAPHICAL LOCATIONS - REMOVE/IGNORE NON IP ADDRESSES LOGS
-*/
-
 
 });
 
